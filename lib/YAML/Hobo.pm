@@ -1,6 +1,8 @@
 
 package YAML::Hobo;
 
+# ABSTRACT: Poor man's YAML
+
 BEGIN {
     require YAML::Tiny;
     YAML::Tiny->VERSION('1.70');
