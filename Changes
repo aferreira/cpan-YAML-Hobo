@@ -3,6 +3,13 @@ Release history for YAML-Hobo
 
 {{$NEXT}}
 
+v0.2     2018-04-25 11:17:14-07:00 America/Los_Angeles
+
+    - Use double quotes for special strings
+    - Use double quotes for simple strings with spaces
+    - Fix quoting of unprintable (\n, \0, etc.)
+    - Fix quoting of special strings
+
 v0.1     2017-11-02 09:11:30-07:00 America/Los_Angeles
 
     - Initial version
