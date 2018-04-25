@@ -26,6 +26,10 @@ sub Load {
     }
 }
 
+# These 3 values have special meaning when unquoted and using the
+# default YAML schema. They need quotes if they are strings.
+my %QUOTE = map { $_ => 1 } qw( null true false );
+
 sub _dump_scalar {
     my $string = $_[1];
     my $is_key = $_[2];
