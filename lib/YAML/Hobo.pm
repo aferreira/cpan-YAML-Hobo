@@ -39,6 +39,8 @@ my @UNPRINTABLE = qw(
 # default YAML schema. They need quotes if they are strings.
 my %QUOTE = map { $_ => 1 } qw( null true false );
 
+### Dumper functions
+
 sub _dump_scalar {
     my $string = $_[1];
     my $is_key = $_[2];
@@ -57,7 +59,7 @@ sub _dump_scalar {
             return $string;
         }
     }
-    if ( $string =~ /[\x00-\x09\x0b-\x0d\x0e-\x1f\x7f-\x9f\'\n]/ ) {
+    if ( $string =~ /[\x00-\x09\x0b-\x0d\x0e-\x1f\x7f-\x9f\'\n\s]/ ) {
         $string =~ s/\\/\\\\/g;
         $string =~ s/"/\\"/g;
         $string =~ s/\n/\\n/g;
@@ -66,7 +68,7 @@ sub _dump_scalar {
         $string =~ s/([\x7f-\x9f])/'\x' . sprintf("%X",ord($1))/ge;
         return qq|"$string"|;
     }
-    if (   $string =~ /(?:^[~!@#%&*|>?:,'"`{}\[\]]|^-+$|\s|:\z)/
+    if (   $string =~ /(?:^[~!@#%&*|>?:,'"`{}\[\]]|^-+$|:\z)/
         or $QUOTE{$string} )
     {
         return "'$string'";
