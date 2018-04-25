@@ -59,7 +59,9 @@ sub _dump_scalar {
             return $string;
         }
     }
-    if ( $string =~ /[\x00-\x09\x0b-\x0d\x0e-\x1f\x7f-\x9f\'\n\s]/ ) {
+    if (   $string =~ /[\x00-\x09\x0b-\x0d\x0e-\x1f\x7f-\x9f\'\n\s]/
+        or $QUOTE{$string} )
+    {
         $string =~ s/\\/\\\\/g;
         $string =~ s/"/\\"/g;
         $string =~ s/\n/\\n/g;
@@ -68,9 +70,7 @@ sub _dump_scalar {
         $string =~ s/([\x7f-\x9f])/'\x' . sprintf("%X",ord($1))/ge;
         return qq|"$string"|;
     }
-    if (   $string =~ /(?:^[~!@#%&*|>?:,'"`{}\[\]]|^-+$|:\z)/
-        or $QUOTE{$string} )
-    {
+    if ( $string =~ /(?:^[~!@#%&*|>?:,'"`{}\[\]]|^-+$|:\z)/ ) {
         return "'$string'";
     }
     return $is_key ? $string : qq|"$string"|;
