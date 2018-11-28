@@ -11,6 +11,8 @@ BEGIN {
 
 our @EXPORT_OK = qw(Dump Load);
 
+use Data::Bool qw(true false);
+
 sub Dump {
     return YAML::Hobo->new(@_)->_dump_string;
 }
@@ -74,6 +76,78 @@ sub _dump_scalar {
         return "'$string'";
     }
     return $is_key ? $string : qq|"$string"|;
+}
+
+### Loader functions
+
+my $re_capture_double_quoted = qr/\"([^\\"]*(?:\\.[^\\"]*)*)\"/;
+my $re_capture_single_quoted = qr/\'([^\']*(?:\'\'[^\']*)*)\'/;
+my $re_trailing_comment      = qr/(?:\s+\#.*)?/;
+
+my $re_true  = qr/(?:y|Y|yes|Yes|YES|true|True|TRUE|on|On|ON)/;
+my $re_false = qr/(?:n|N|no|No|NO|false|False|FALSE|off|Off|OFF)/;
+
+# Load a YAML scalar string to the actual Perl scalar
+sub _load_scalar {
+    my ($self, $string, $indent, $lines) = @_;
+
+    # Trim trailing whitespace
+    $string =~ s/\s*\z//;
+
+    # Explitic null/undef
+    return undef if $string eq '~';
+
+    # Booleans
+    return true  if $string =~ /^$re_true\z/;
+    return false if $string =~ /^$re_false\z/;
+
+    # Single quote
+    if ( $string =~ /^$re_capture_single_quoted$re_trailing_comment\z/ ) {
+        return $self->_unquote_single($1);
+    }
+
+    # Double quote.
+    if ( $string =~ /^$re_capture_double_quoted$re_trailing_comment\z/ ) {
+        return $self->_unquote_double($1);
+    }
+
+    # Special cases
+    if ( $string =~ /^[\'\"!&]/ ) {
+        die \"YAML::Tiny does not support a feature in line '$string'";
+    }
+    return {} if $string =~ /^{}(?:\s+\#.*)?\z/;
+    return [] if $string =~ /^\[\](?:\s+\#.*)?\z/;
+
+    # Regular unquoted string
+    if ( $string !~ /^[>|]/ ) {
+        die \"YAML::Tiny found illegal characters in plain scalar: '$string'"
+            if $string =~ /^(?:-(?:\s|$)|[\@\%\`])/ or
+                $string =~ /:(?:\s|$)/;
+        $string =~ s/\s+#.*\z//;
+        return $string;
+    }
+
+    # Error
+    die \"YAML::Tiny failed to find multi-line scalar content" unless @$lines;
+
+    # Check the indent depth
+    $lines->[0]   =~ /^(\s*)/;
+    $indent->[-1] = length("$1");
+    if ( defined $indent->[-2] and $indent->[-1] <= $indent->[-2] ) {
+        die \"YAML::Tiny found bad indenting in line '$lines->[0]'";
+    }
+
+    # Pull the lines
+    my @multiline = ();
+    while ( @$lines ) {
+        $lines->[0] =~ /^(\s*)/;
+        last unless length($1) >= $indent->[-1];
+        push @multiline, substr(shift(@$lines), $indent->[-1]);
+    }
+
+    my $j = (substr($string, 0, 1) eq '>') ? ' ' : "\n";
+    my $t = (substr($string, 1, 1) eq '-') ? ''  : "\n";
+    return join( $j, @multiline ) . $t;
 }
 
 1;
